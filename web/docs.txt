@@ -1,0 +1,71 @@
+to make grphql requests we will urql
+
+yarn add urql graphql
+
+wrap application in a provider
+
+
+
+//will give us typesafe graphql queries
+yarn add --dev @graphql-codegen/cli
+
+yarn add -D @graphql-codegen/typescript-urql
+
+yarn codegen
+
+yarn add @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations @graphql-codegen/typescript-urql
+
+
+//for new mutuation go to graphql/mutation add new ___.graphql file
+
+
+
+URQL Cache Updates
+For logout the request was caches and therefore even after logging in it showed loged out we need to set cache 
+
+urql uses GraphCache
+
+yarn add @urql/exchange-graphcache
+
+//graphcache is a normalized cache unlike document cache (will use custom update)
+
+
+
+Why Use Fragments?
+- Avoid Repetition – If multiple queries request the same set of fields, you can define them once in a fragment and reuse them.
+- Improve Maintainability – Updates to field selections can be done in one place instead of multiple queries.
+
+
+
+
+
+//SSR: Server Side Rendering
+
+https://commerce.nearform.com/open-source/urql/docs/advanced/server-side-rendering/
+
+//When not server side rendering, the page is rendered on the client side i.e. fetching the items on the browser
+
+//If you slow this down by using a slow 3G network, you will see the page load without the data first, then the data will load in
+
+//In server side rendering, the data is rendered on the server and then sent to the client
+
+//Bad for SEO : as if you look at the page source you will see the data is not there
+
+//So if we want data to be shown up on google we should use server side rendering like this page , but for something like login page its not required
+
+
+me -> browser http://localhost:3000
+-> next.js server
+-> request graphql server localhost:4000
+-> building html
+->sending back to your browse
+
+
+//in next if you go from client send page to server side page ...even though the page is Server Side Rendered it will still go to client 
+
+
+//Remember to make hook first make mutation or query inside graphql then run yarn graphql-codegen
+
+This will create a hook inside generate folder which you can import 
+
+

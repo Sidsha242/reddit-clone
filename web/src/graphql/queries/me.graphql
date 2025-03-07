@@ -1,0 +1,7 @@
+query Me {
+  me {
+    ...RegularUser
+  }
+}
+
+#to check if user is logged in

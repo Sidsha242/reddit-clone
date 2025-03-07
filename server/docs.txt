@@ -1,0 +1,250 @@
+//Make sure redis is running
+redis-server
+(to chck use redis-cli ping)
+
+//Initialize project [ say yes to everything ..will create package.json]
+npm init -y 
+
+(to check if node installed)
+
+node -v
+
+(to check if npm installed)
+
+npm -v
+
+[we are using yarn]
+
+//devDependencies (Only needed during development (not required in production)
+
+yarn add -D @types/nodes typescript
+
+@types/nodes - provides type definitions for the built-in Node.js modules
+
+
+-------------------------------------------------------------
+
+yarn add -D ts-node
+
+adding new script in package.json
+
+"start": "ts-node src/index.ts"   ..to run any typescript files
+
+ts-node : TypeScript execution engine that allows you to run TypeScript code directly in Node.js without needing to compile it manually using tsc
+
+yarn start
+
+-------------------------------------------------------------
+
+In prod you would want to compile it to js
+
+Create watch command 
+
+"watch": "tsc -w",
+
+The command tsc -w (or tsc --watch) runs the TypeScript compiler (tsc) in watch mode. This means that TypeScript will continuously monitor your .ts files for changes and automatically recompile them into .js files whenever you save a file.
+
+yarn watch
+
+will spit out dist folder
+
+dist (distribution) folder in a TypeScript project is where the compiled JavaScript files are stored after the TypeScript code is transpiled.
+
+
+now you can simply run node dist/index.js and it will run the javascript code 
+
+
+so the start command will be 
+
+"start": "node dist/index.js",
+
+
+-----------------------------------------------------------------
+
+added node deaomon (listens to changes on files and runs itself)
+
+"dev": "nodemon dist/index.js",
+
+yarn dev
+
+[will be waiting for changes]
+
+
+---------------------------------------------------------------
+
+//setup mikro-ORM
+
+yarn add @mikro-orm/cli @mikro-orm/core @mikro-orm/migrations @mikro-orm/postgresql pg
+
+Mirko-ORM : Mikro-ORM is a TypeScript Object-Relational Mapper (ORM) designed for Node.js applications.
+
+Entities - Database Table
+
+
+- Uses decorators (@Entity, @Property, @PrimaryKey) to define database models.
+
+- Supports schema migrations, cascading operations, and entity relations (one-to-one, one-to-many, many-to-many).
+
+//setup cli for mikro orm  ..add to package.json
+
+"mikro-orm": {
+    "useTsNode": true,
+    "configPaths": [
+      "./src/mikro-orm.config.ts",
+      "./dist/mikro-orm.config.js"
+    ]
+  },
+
+
+
+//to perform migrations
+
+npx mikro-orm migration:create
+
+
+added script as well
+"create:migration": "mikro-orm migration:create"
+
+yarn create:migration
+
+//added in code to run migrations automatically
+
+await orm.getMigrator().up(); //run migrtions
+
+
+----------------------------------------------------------------
+
+Note: You may have to delete dist folder and run yarn watch
+
+----------------------------------------------------------
+
+//Setup Server
+
+yarn add express apollo-server-express graphql type-graphql
+yarn add -D @types/express
+
+express : the server we will be using [middleware]..used for REST endpoint
+
+apollo-server-express : helps create graphql endpoint easily
+
+@type-graphql:
+build GraphQL APIs using TypeScript classes and decorators instead of manually defining schemas with SDL (Schema Definition Language).
+
+Decorator-Based API → Uses @ObjectType(), @Field(), @Resolver(), etc.
+
+@types/express:
+It provides type definitions that allow TypeScript to recognize and enforce types for Express objects like Request, Response, NextFunction, Application, etc.
+
+
+Make Resolver Class 
+
+Inside the Resolver we will define the functions which are either Mutations[updating, inserting, deleting] or Queries [getting data]
+
+//start and go to /graphql to see playground
+
+
+----------------------------------------------------------------
+@Arg("inp_password", () => String) inp_password: string
+
+🔹 @Arg() → This decorator defines a GraphQL argument for a mutation or query.
+🔹 "inp_password" → The name of the argument in the GraphQL schema.
+🔹 () => String → Specifies the GraphQL type of the argument (in this case, a String).
+🔹 inp_password: string → The TypeScript type of the variable inside the function.
+
+-----------------------------------------------------------------
+
+for hashing we are using argon2
+
+yarn add argon2
+
+-----------------------------------------------------------------
+
+express-session 
+
+middleware for Express.js that allows you to manage user sessions by storing session data on the server. It is commonly used for authentication, user tracking, and persistent data storage across multiple requests.
+
+We are storing this data in redis (we can store it in postgres, mongo etc) ..reason for redis its very fast
+
+-------------------------------------------------------------------
+
+reddis
+
+wsl --install
+wsl
+sudo apt update
+sudo apt install redis-server -y
+
+//installed on system
+
+redis-cli
+airport23$
+redis-cli ping >PONG
+
+yarn add redis connect-redis express-session
+
+yarn add -D @types/redis @types/express-session @types/connect-redis
+
+key/value store
+we are storing key along with userId
+
+1
+sess:qwedjkfrj -> {userId :1}
+
+2
+express-session will set a cookie on my browser qfuhfuhohshfh(signed vaerion)
+
+3
+when user makes a request 
+qwedjkfrj -> sent to the server
+
+4
+decrypt cookie
+
+5
+make a request to redis
+
+
+-----------------------------------------------
+
+yarn add cors
+
+yarn add -D @types/cors
+
+-------------------------------------------
+
+Knex - Query Builder : SQL query builder for PostgreSQ
+
+------------------------------------------------------------------------
+
+frontend
+
+nextjs/chakra-ui
+
+yarn create next-app --example with-chakra-ui lireddit-web
+
+
+types-react : @types/react is a TypeScript type definition package that provides type declarations for React. It allows TypeScript to understand the structure of React components, hooks, and APIs, enabling type safety, autocompletion, and error checking in a React + TypeScript project.
+
+apollo-server-express :GraphQL API by handling queries, mutations, and subscriptions efficiently. It acts as a bridge between client applications (React, Angular, Vue, etc.) and data sources (databases, REST APIs, or microservices).
+
+----------------------------------------
+
+nodemailer for forget passowrd
+
+yarn add nodemailer 
+yarn add -D @types/nodemailer
+
+
+yarn add uuid ioredis
+yarn add -D @types/uuid @types/ioredis
+
+//using redis to store token for 1 password change
+
+token is deleted after password change
+
+
+//We want manytoone relationship for posts and user 
+
+//Easier to go for Type ORM
+
+yarn add typeorm
