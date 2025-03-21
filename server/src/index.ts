@@ -1,6 +1,6 @@
-import { MikroORM } from "@mikro-orm/core";
+import "reflect-metadata";
 import { Post } from "./entities/Post";
-import config from "./mikro-orm.config";
+import { User } from "./entities/User";
 import express, { Application } from "express";
 import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
@@ -11,15 +11,24 @@ import { UserResolver } from "./resolvers/user";
 import { RedisStore } from "connect-redis";
 import session from "express-session";
 import Redis from "ioredis";
-
 import cors from "cors";
 
+import { DataSource } from "typeorm";
+
+export const conn = new DataSource({
+  type: "postgres",
+  host: "localhost",
+  username: "postgres",
+  password: "durga23$",
+  database: "lireddit2", //new db
+  entities: [Post, User],
+  synchronize: true, //no need for migrations
+  logging: true,
+});
+
 const main = async () => {
-  const orm = await MikroORM.init(config); // Initialize MikroORM
-
-  //await orm.em.nativeDelete(User, {}); // Delete all users
-
-  await orm.getMigrator().up(); // Run migrations
+  conn.initialize();
+  console.log("Database connection established!");
 
   const app: Application = express(); // Create Express app
 
@@ -61,7 +70,7 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }) => ({ em: orm.em, req, res, redis }), // Pass req and res to context
+    context: ({ req, res }) => ({ req, res, redis }), // Pass req and res to context
   });
 
   await apolloServer.start();
@@ -74,10 +83,6 @@ const main = async () => {
   app.listen(4000, () => {
     console.log("🚀 Server started on http://localhost:4000/graphql");
   });
-
-  // Fetch posts (example query)
-  const posts = await orm.em.find(Post, {});
-  console.log(posts);
 };
 
 // Run the main function

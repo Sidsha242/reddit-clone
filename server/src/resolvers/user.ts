@@ -1,5 +1,5 @@
 import { User } from "../entities/User";
-import { MyContext } from "src/types";
+import { MyContext } from "../types";
 import {
   Arg,
   Mutation,
@@ -10,12 +10,12 @@ import {
   Query,
 } from "type-graphql";
 import argon2 from "argon2";
-import { EntityManager } from "@mikro-orm/postgresql"; //for writing queries
 import { UsernamePasswordInput } from "./UsernamePasswordInput";
 import { validateRegister } from "../utils/validateRegister";
 import { sendEmail } from "../utils/sendEmail";
 import { v4 } from "uuid";
 import { FORGET_PASSWORD_PREFIX } from "../constants";
+import { conn } from "../index";
 
 @ObjectType()
 class FieldError {
@@ -44,7 +44,7 @@ export class UserResolver {
   async changePassword(
     @Arg("token") token: string,
     @Arg("newPassword") newPassword: string,
-    @Ctx() { em, redis, req }: MyContext
+    @Ctx() { redis, req }: MyContext
   ): Promise<UserResponse> {
     if (newPassword.length <= 2) {
       return {
@@ -70,7 +70,10 @@ export class UserResolver {
       };
     }
 
-    const user = await em.findOne(User, { id: parseInt(userId) }); //find user by id
+    const userIdNum = parseInt(userId);
+
+    const user = await User.findOne({ where: { id: userIdNum } }); //find user by id
+
     if (!user) {
       return {
         errors: [
@@ -82,9 +85,10 @@ export class UserResolver {
       };
     }
 
-    user.password = await argon2.hash(newPassword); //hashing new password
-
-    await em.persistAndFlush(user); //save to db
+    await User.update(
+      { id: userIdNum },
+      { password: await argon2.hash(newPassword) }
+    ); //update password
 
     await redis.del(key); //delete token from redis
 
@@ -97,9 +101,9 @@ export class UserResolver {
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg("email") email: string,
-    @Ctx() { em, redis }: MyContext
+    @Ctx() { redis }: MyContext
   ) {
-    const user = await em.findOne(User, { email }); //find email in database
+    const user = await User.findOne({ where: { email } }); //find email in database
     if (!user) {
       //email not in db
       return true;
@@ -123,21 +127,19 @@ export class UserResolver {
 
   //const user = await em.findOne(User
   @Query(() => User, { nullable: true })
-  async me(@Ctx() { req, em }: MyContext) {
+  me(@Ctx() { req }: MyContext) {
     if (!req.session.userId) {
       //if not logged in
       return null;
     }
 
-    const user = await em.findOne(User, { id: req.session.userId }); //find user by id
-
-    return user;
+    return User.findOne({ where: { id: req.session.userId } }); //find user by id
   }
 
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const errors = validateRegister(options);
     if (errors) {
@@ -147,33 +149,25 @@ export class UserResolver {
 
     const hashedPassword = await argon2.hash(options.password); //hashing password
 
-    //create user object
-    // const user = em.create(User, {
-    //   username: username,
-    //   password: hashedPassword,
-    //   createdAt: new Date(),
-    //   updatedAt: new Date(),
-    // });
     let user;
     try {
-      const result = await (em as EntityManager)
-        .createQueryBuilder(User)
-        .getKnexQuery()
-        .insert({
+      //User.create({}).save()
+      const result = await conn
+        .createQueryBuilder()
+        .insert()
+        .into(User)
+        .values({
           username: options.username,
-          password: hashedPassword,
           email: options.email,
-          created_at: new Date(),
-          updated_at: new Date(),
+          password: hashedPassword,
         })
-        .returning("*"); //insert into db using Knex  .. * will return user
-
-      //using mikro-orm
-      //await em.persistAndFlush(user); //save to db
-
-      user = result[0]; //first user
+        .returning("*")
+        .execute();
+      //console.log(result);
+      user = result.raw[0];
     } catch (err) {
       //while creating if error ..username already exists
+      console.log("message", err.message);
       if (err.code === "23505" || err.detail.includes("already exists")) {
         return {
           errors: [
@@ -195,13 +189,12 @@ export class UserResolver {
   async login(
     @Arg("usernameOrEmail") usernameOrEmail: string,
     @Arg("password") password: string,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(
-      User,
+    const user = await User.findOne(
       usernameOrEmail.includes("@") //conditionally finding if login by username or email
-        ? { email: usernameOrEmail }
-        : { username: usernameOrEmail }
+        ? { where: { email: usernameOrEmail } }
+        : { where: { username: usernameOrEmail } }
     ); //find user by username
     if (!user) {
       return {
