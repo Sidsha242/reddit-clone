@@ -1,5 +1,25 @@
+import { MyContext } from "../types";
 import { Post } from "../entities/Post";
-import { Resolver, Query, Ctx, Arg, Int, Mutation } from "type-graphql";
+import {
+  Resolver,
+  Query,
+  Ctx,
+  Arg,
+  Int,
+  Mutation,
+  InputType,
+  Field,
+  UseMiddleware,
+} from "type-graphql";
+import { isAuth } from "../middleware/isAuth";
+
+@InputType()
+class PostInput {
+  @Field()
+  title: string;
+  @Field()
+  text: string;
+}
 
 @Resolver()
 export class PostResolver {
@@ -17,8 +37,19 @@ export class PostResolver {
   }
 
   @Mutation(() => Post) //creating a post Query for getting data mutation is for updating inseting deleting
-  async createPost(@Arg("title", () => String) title: string): Promise<Post> {
-    return Post.create({ title }).save();
+  @UseMiddleware(isAuth) //middleware to check if the user is authenticated or not
+  async createPost(
+    @Arg("input") input: PostInput,
+    @Ctx() { req }: MyContext
+  ): Promise<Post> {
+    //if (!req.session.userId) {
+    //throw new Error("Not authenticated");
+    //} //Instead lets create a middleware that will check if the user is authenticated or not .
+
+    return Post.create({
+      ...input,
+      creatorId: req.session.userId,
+    }).save();
     // 2 sql queries one to insert it and another to select it
   }
 

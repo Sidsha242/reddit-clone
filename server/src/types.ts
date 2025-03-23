@@ -1,6 +1,3 @@
-import { EntityManager, IDatabaseDriver, Connection } from "@mikro-orm/core";
-import { SqlEntityManager, PostgreSqlDriver } from "@mikro-orm/postgresql";
-
 import { Request, Response } from "express";
 import { SessionData } from "express-session";
 import { Redis } from "ioredis";

@@ -23,8 +23,12 @@ const Login: React.FunctionComponent<{}> = ({}) => {
             // will make a utility to make an array of errors into an object - toErrorMap
             setErrors(toErrorMap(response.data.login.errors));
           } else if (response.data?.login.user) {
-            // worked..navigate to landing page
-            router.push("/");
+            // worked..navigate to landing page or previous page
+            if (typeof router.query.next == "string") {
+              router.push(router.query.next);
+            } else {
+              router.push("/");
+            }
           }
         }}
       >
